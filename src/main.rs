@@ -22,6 +22,7 @@ fn main() {
         let now = Local::now();
         let hour = now.hour() % 12;
         let minute = now.minute();
+        let seconds = now.second();
 
         draw::draw_rect_fill(0, 0, w, h, enums::Color::Cyan);
         draw::set_draw_color(enums::Color::Black);
@@ -50,11 +51,31 @@ fn main() {
             / 6_f64;
 
         draw::set_line_style(draw::LineStyle::Solid, 10);
+
         draw::draw_line(
             w / 2,
             h / 2,
-            (hour_theta.cos() * 0.8 * (w / 2) as f64) as i32 + w / 2,
-            (hour_theta.sin() * 0.8 * (h / 2) as f64) as i32 + h / 2,
+            (hour_theta.cos() * 0.6 * (w / 2) as f64) as i32 + w / 2,
+            (hour_theta.sin() * 0.6 * (h / 2) as f64) as i32 + h / 2,
+        );
+
+        let minute_index = hours.iter().position(|&h| h == (minute / 5) % 12).unwrap() as i32;
+        let next_minute_index = hours
+            .iter()
+            .position(|&h| h == (minute / 5 + 1) % 12)
+            .unwrap() as i32;
+
+        let minute_theta = ((((minute % 5) as f64 / 5_f64)
+            * ((next_minute_index - minute_index + 12) % 12) as f64)
+            + minute_index as f64)
+            * PI
+            / 6_f64;
+
+        draw::draw_line(
+            w / 2,
+            h / 2,
+            (minute_theta.cos() * 0.8 * (w / 2) as f64) as i32 + w / 2,
+            (minute_theta.sin() * 0.8 * (h / 2) as f64) as i32 + h / 2,
         );
     });
     app.run().unwrap();
