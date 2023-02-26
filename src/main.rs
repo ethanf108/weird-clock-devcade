@@ -1,8 +1,10 @@
 use chrono::{Local, Timelike};
 use core::f64::consts::PI;
 use fltk::{prelude::*, *};
+use gilrs::{ev::EventType::ButtonPressed, Event, Gilrs};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use std::sync::{Arc, Mutex};
 
 fn main() {
     let app = app::App::default();
@@ -15,7 +17,13 @@ fn main() {
     let mut hours: Vec<u32> = (1..=12).collect();
     hours.shuffle(&mut thread_rng());
 
+    let arc = Arc::new(Mutex::new(hours));
+
+    let a = arc.clone();
+
     draw.draw(move |_| {
+        let hours = a.lock().unwrap();
+
         let w = window.w();
         let h = window.h();
 
@@ -26,7 +34,7 @@ fn main() {
 
         draw::draw_rect_fill(0, 0, w, h, enums::Color::Cyan);
         draw::set_draw_color(enums::Color::Black);
-        draw::set_font(enums::Font::HelveticaBold, (w + h) / 100);
+        draw::set_font(enums::Font::HelveticaBold, (w + h) / 70);
 
         for i in 0..=11 {
             let theta = i as f64 * PI / 6_f64;
@@ -80,12 +88,44 @@ fn main() {
             (minute_theta.cos() * 0.8 * (w / 2) as f64) as i32 + w / 2,
             (minute_theta.sin() * 0.8 * (h / 2) as f64) as i32 + h / 2,
         );
+
+        drop(hours);
     });
 
     std::thread::spawn(move || loop {
         app.redraw();
         app::awake();
         std::thread::sleep(std::time::Duration::from_millis(250));
+    });
+
+    let a1 = arc.clone();
+
+    std::thread::spawn(move || {
+        let mut gilrs = Gilrs::new().unwrap();
+        loop {
+            let ev = gilrs.next_event();
+            match ev {
+                Some(Event {
+                    event: ButtonPressed(gilrs::ev::Button::Start, _),
+                    ..
+                }) => {
+                    std::process::exit(0);
+                }
+                Some(Event {
+                    event: ButtonPressed(gilrs::ev::Button::Select, _),
+                    ..
+                }) => {
+                    std::process::exit(0);
+                }
+                _ => {
+                    let hours = &mut a1.lock().unwrap();
+                    hours.shuffle(&mut thread_rng());
+                    drop(hours);
+                    app.redraw();
+                    app::awake();
+                }
+            }
+        }
     });
 
     app.run().unwrap();
