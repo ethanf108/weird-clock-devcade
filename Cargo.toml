@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4.23"
-fltk = "^1.3"
-gilrs = { version = "0.10.1", default_features = false, features = ["xinput"] }
+bevy = "0.10.0"
+chrono = "0.4.24"
+devcaders = "0.3.1"
 rand = "0.8.5"
