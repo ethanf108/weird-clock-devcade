@@ -1,6 +1,7 @@
 use bevy::{prelude::*, window::WindowMode};
 use chrono::{Local, Timelike};
 use core::f32::consts::PI;
+use devcaders::{Button, DevcadeControls, Player};
 use rand::{seq::SliceRandom, thread_rng};
 
 #[derive(Component)]
@@ -25,11 +26,33 @@ fn main() {
             ..default()
         }))
         .add_startup_system(setup)
+        .add_systems((shuffle_hours, watch_exit))
         .add_systems(
             (update_text, update_hour, update_minute).in_schedule(CoreSchedule::FixedUpdate),
         )
-        .insert_resource(FixedTime::new_from_secs(0.1))
         .run();
+}
+
+fn watch_exit(controls: DevcadeControls) {
+    if controls.pressed(Player::P1, Button::Menu) || controls.pressed(Player::P2, Button::Menu) {
+        std::process::exit(0);
+    }
+}
+
+fn shuffle_hours(mut hours: Query<&mut Hour>, controls: DevcadeControls) {
+    if !controls.just_pressed(Player::P1, Button::A1)
+        && !controls.just_pressed(Player::P2, Button::A1)
+    {
+        return;
+    }
+    let mut index = 0;
+    let mut new_hours: Vec<u8> = (0..12).collect();
+    new_hours.shuffle(&mut thread_rng());
+
+    for mut hour in hours.iter_mut() {
+        hour.index = *new_hours.get(index).unwrap();
+        index += 1;
+    }
 }
 
 fn setup(mut commands: Commands, mut windows: Query<&mut Window>, assets: Res<AssetServer>) {
@@ -55,10 +78,10 @@ fn setup(mut commands: Commands, mut windows: Query<&mut Window>, assets: Res<As
     hours.shuffle(&mut thread_rng());
 
     let font = assets.load("OpenSans.ttf");
-    for i in 1..=12 {
+    for i in 0..12 {
         let text = Text2dBundle {
             text: Text::from_section(
-                format!("{}", i),
+                format!("{}", if i == 0 { 12 } else { i }),
                 TextStyle {
                     font: font.clone(),
                     font_size: 50.,
@@ -71,7 +94,7 @@ fn setup(mut commands: Commands, mut windows: Query<&mut Window>, assets: Res<As
         commands.spawn((
             text,
             Hour {
-                index: *hours.get(i - 1).unwrap(),
+                index: *hours.get(i).unwrap(),
                 number: i as u8,
             },
         ));
@@ -160,7 +183,7 @@ fn update_hour(
         1.,
     );
     transform.scale = Vec3::new(
-        hour_theta.sin() * hour_theta.sin() * (h / w) + hour_theta.cos() * hour_theta.cos(),
+        hour_theta.sin().powi(2) * (h / w) + hour_theta.cos().powi(2),
         1.,
         1.,
     );
@@ -209,7 +232,7 @@ fn update_minute(
         1.,
     );
     transform.scale = Vec3::new(
-        minute_theta.sin() * minute_theta.sin() * (h / w) + minute_theta.cos() * minute_theta.cos(),
+        minute_theta.sin().powi(2) * (h / w) + minute_theta.cos().powi(2),
         1.,
         1.,
     );
